@@ -171,7 +171,7 @@ async def main():
     # Настраиваем планировщик
     scheduler = AsyncIOScheduler(timezone=timezone("Europe/Moscow"))
     # Добавляем задачу: каждый день (cron) в 21:00
-    scheduler.add_job(send_reminder, "cron", hour=18, minute=55)
+    scheduler.add_job(send_reminder, "cron", hour=19, minute=00)
     scheduler.start()
 
     # Запуск бота
