@@ -150,14 +150,19 @@ async def send_analytics(message: types.Message):
     plt.close()
 
 async def send_reminder():
-    # Твой USER_ID можно взять из логов или написать боту /start и посмотреть в консоли
-    # Для пет-проекта можно просто рассылать всем, кто хоть раз писал боту (но это сложнее)
-    # Пока укажи свой ID напрямую
-    user_id = 364213802 # <--- ЗАМЕНИ НА СВОЙ ID
-    try:
-        await bot.send_message(user_id, "🔔 Кристи, уже 21:00! Не забудь записать часы за сегодня. ✨")
-    except Exception as e:
-        logging.error(f"Ошибка в напоминании: {e}")
+    # Создаем список ID (важно: без кавычек, так как это числа)
+    user_ids = [364213802, 154491963]
+
+    for user_id in user_ids:
+        try:
+            await bot.send_message(
+                user_id,
+                "🔔 Напоминание: не забудьте записать рабочие часы за сегодня! ✨"
+            )
+            logging.info(f"Уведомление успешно отправлено пользователю {user_id}")
+        except Exception as e:
+            # Если возникла ошибка (например, бот заблокирован), просто логируем её
+            logging.error(f"Не удалось отправить уведомление пользователю {user_id}: {e}")
 
 
 # --- ЗАПУСК ---
@@ -166,7 +171,7 @@ async def main():
     # Настраиваем планировщик
     scheduler = AsyncIOScheduler(timezone=timezone("Europe/Moscow"))
     # Добавляем задачу: каждый день (cron) в 21:00
-    scheduler.add_job(send_reminder, "cron", hour=17, minute=38)
+    scheduler.add_job(send_reminder, "cron", hour=18, minute=55)
     scheduler.start()
 
     # Запуск бота
