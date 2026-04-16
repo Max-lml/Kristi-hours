@@ -3,6 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from config_reader import config
 
+
 class GoogleSheetsService:
     def __init__(self):
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -12,17 +13,46 @@ class GoogleSheetsService:
 
     def append_hours(self, date_str: str, hours: float):
         # Добавляем: Дата, Часы, Время записи
-        now = datetime.now().strftime("%d.%m.%Y %H:%M")
-        self.sheet.append_row([date_str, hours, now])
+        self.sheet.append_row([date_str, hours])
 
     def get_month_report(self, month_year: str):
-        # month_year должен быть в формате "04.2026"
         records = self.sheet.get_all_records()
         total = 0
         for row in records:
-            if month_year in str(row.get('Дата')):
-                total += float(row.get('Часы', 0))
+            # .strip() удаляет случайные пробелы в начале и конце
+            # .get() ищет ключ, игнорируя лишние пробелы в названии колонки
+            date_val = str(row.get('Дата', '')).strip()
+
+            parts = date_val.split('.')
+            if len(parts) == 3:
+                row_month_year = f"{parts[1]}.{parts[2]}"
+                if row_month_year == month_year:
+                    try:
+                        val = str(row.get('Часы', 0)).replace(',', '.').strip()
+                        total += float(val)
+                    except ValueError:
+                        continue
         return total
+
+    def get_all_data_for_analytics(self):
+        records = self.sheet.get_all_records()
+        stats = {}
+        for row in records:
+            # Очищаем дату от пробелов
+            date_val = str(row.get('Дата', '')).strip()
+            try:
+                parts = date_val.split(".")
+                if len(parts) < 3: continue
+                month_year = f"{parts[1]}.{parts[2]}"
+
+                # Очищаем часы от пробелов и меняем запятые
+                hours_str = str(row.get('Часы', 0)).replace(',', '.').strip()
+                hours = float(hours_str)
+
+                stats[month_year] = stats.get(month_year, 0) + hours
+            except (ValueError, IndexError):
+                continue
+        return stats
 
 # Создаем экземпляр сразу
 gs_service = GoogleSheetsService()
