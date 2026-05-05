@@ -12,8 +12,12 @@ class GoogleSheetsService:
         self.sheet = self.client.open_by_key(config.SPREADSHEET_ID).sheet1
 
     def append_hours(self, date_str: str, hours: float):
-        # Добавляем: Дата, Часы, Время записи
-        self.sheet.append_row([date_str, hours])
+        # Преобразуем float в строку и принудительно меняем запятую на точку
+        # Это гарантирует, что в API улетит именно "5.5", а не 5,5
+        safe_hours = str(hours).replace(',', '.')
+
+        # Отправляем данные в таблицу
+        self.sheet.append_row([date_str, safe_hours])
 
     def get_month_report(self, month_year: str):
         records = self.sheet.get_all_records()
