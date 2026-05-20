@@ -22,17 +22,25 @@ def client_main_menu():
     builder.button(text="📅 Расписание занятий") # Единственная доступная кнопка
     return builder.as_markup(resize_keyboard=True)
 
-# Урезанное меню расписания для клиентов (без кнопки "Активные дни", чтобы не светить даты чужих уроков)
-def client_schedule_menu():
+# Выбор типа записи (Урок или Личное дело)
+def entry_type_selection():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="На сегодня 🗓")
-    builder.button(text="На завтра 🌅")
-    builder.button(text="Выбрать дату 📆")
-    builder.button(text="⬅️ В меню")
+    builder.button(text="Урок 🎓")
+    builder.button(text="Личное дело 🏃‍♂️")
+    builder.button(text="❌ Отмена")
     builder.adjust(2, 1)
     return builder.as_markup(resize_keyboard=True)
 
-# ОСТАЛЬНЫЕ КНОПКИ АДМИНКА (БЕЗ ИЗМЕНЕНИЙ)
+# Выбор формата работы для уроков
+def lesson_location_selection():
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="Личный урок 👤")
+    builder.button(text="Школа Сабины 🏫")
+    builder.button(text="❌ Отмена")
+    builder.adjust(2, 1)
+    return builder.as_markup(resize_keyboard=True)
+
+# Меню расписания для администраторов
 def schedule_menu():
     builder = ReplyKeyboardBuilder()
     builder.button(text="На сегодня 🗓")
@@ -41,6 +49,16 @@ def schedule_menu():
     builder.button(text="Активные дни ✨")
     builder.button(text="⬅️ Главное меню")
     builder.adjust(2, 2, 1)
+    return builder.as_markup(resize_keyboard=True)
+
+# Урезанное меню расписания для клиентов (без кнопки "Активные дни", чтобы не светить даты чужих уроков)
+def client_schedule_menu():
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="На сегодня 🗓")
+    builder.button(text="На завтра 🌅")
+    builder.button(text="Выбрать дату 📆")
+    builder.button(text="⬅️ В меню")
+    builder.adjust(2, 1)
     return builder.as_markup(resize_keyboard=True)
 
 def active_dates_buttons(dates_list):
@@ -85,14 +103,6 @@ def payment_type_selection():
     builder.button(text="В долг (Не оплачено)")
     builder.button(text="❌ Отмена")
     builder.adjust(2, 1, 1)
-    return builder.as_markup(resize_keyboard=True)
-
-def lesson_location_selection():
-    builder = ReplyKeyboardBuilder()
-    builder.button(text="Личный урок 👤")
-    builder.button(text="Школа Сабины 🏫")
-    builder.button(text="❌ Отмена")
-    builder.adjust(2, 1)
     return builder.as_markup(resize_keyboard=True)
 
 def schedule_date_selection():
