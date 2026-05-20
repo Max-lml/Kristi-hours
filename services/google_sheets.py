@@ -96,6 +96,8 @@ class GoogleSheetsService:
 
         today = datetime.now()
         start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)  # Воскресенье
+        end_of_week = end_of_week.replace(hour=23, minute=59, second=59)
 
         personal_week = 0.0
         school_week = 0.0
@@ -139,7 +141,7 @@ class GoogleSheetsService:
                         personal_month += amount
 
                 # Фильтр по неделе
-                if start_of_week.date() <= event_date.date() <= today.date():
+                if start_of_week <= event_date <= end_of_week:
                     if "школа" in status.lower():
                         school_week += amount
                     elif "личный" in status.lower() or "урок" in status.lower():

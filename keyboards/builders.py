@@ -8,7 +8,7 @@ def admin_main_menu():
     builder.button(text="➕ Добавить запись")
     builder.button(text="📅 Расписание")
     builder.button(text="💰 Финансы")
-    builder.button(text="👥 Клиенты")
+    builder.button(text="👥 Ученики")
     builder.button(text="Записать часы")
     builder.button(text="Сверить часы")
     builder.button(text="Аналитика")
@@ -71,8 +71,8 @@ def active_dates_buttons(dates_list):
 
 def clients_menu():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="📋 Список клиентов")
-    builder.button(text="➕ Добавить клиента")
+    builder.button(text="📋 Список учеников")
+    builder.button(text="➕ Добавить ученика")
     builder.button(text="🗄 В архив")
     builder.button(text="💎 Пополнить абонемент")
     builder.button(text="⬅️ Главное меню")

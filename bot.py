@@ -260,11 +260,11 @@ async def process_lesson_location(message: types.Message, state: FSMContext):
 
     clients = gs_service.get_active_clients()
     if not clients:
-        await message.answer("❌ У вас еще нет активных клиентов!", reply_markup=builders.admin_main_menu())
+        await message.answer("❌ У вас еще нет активных учеников!", reply_markup=builders.admin_main_menu())
         await state.clear()
         return
     await state.set_state(AddEvent.choosing_client)
-    await message.answer("Выберите клиента из списка:", reply_markup=builders.clients_as_buttons(clients))
+    await message.answer("Выберите ученика из списка:", reply_markup=builders.clients_as_buttons(clients))
 
 
 @dp.message(AddEvent.choosing_client)
@@ -272,11 +272,11 @@ async def process_chosen_client(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     clients = gs_service.get_active_clients()
     if message.text not in clients:
-        await message.answer("Пожалуйста, выберите клиента, нажав на кнопку!")
+        await message.answer("Пожалуйста, выберите ученика, нажав на кнопку!")
         return
     await update_data_safe(state, name_or_event=message.text)
     await state.set_state(AddEvent.choosing_date)
-    await message.answer(f"Выбран client: {message.text}. На какую дату планируем занятие?",
+    await message.answer(f"Выбран ученик: {message.text}. На какую дату планируем занятие?",
                          reply_markup=builders.schedule_date_selection())
 
 
@@ -368,32 +368,32 @@ async def update_data_safe(state: FSMContext, **kwargs):
 
 # --- ЗАЩИЩЕННЫЙ РАЗДЕЛ: КЛИЕНТЫ (Только Админ) ---
 
-@dp.message(F.text == "👥 Клиенты")
+@dp.message(F.text == "👥 Ученики")
 async def open_clients_section(message: types.Message, state: FSMContext = None):
     if message.from_user.id not in ADMIN_IDS: return
     if state: await state.clear()
-    await message.answer("Управление базой клиентов:", reply_markup=builders.clients_menu())
+    await message.answer("Управление базой учеников:", reply_markup=builders.clients_menu())
 
 
-@dp.message(F.text == "📋 Список клиентов")
+@dp.message(F.text == "📋 Список учеников")
 async def show_clients_list(message: types.Message):
     if message.from_user.id not in ADMIN_IDS: return
-    await message.answer("⏳ Загружаю список клиентов...")
+    await message.answer("⏳ Загружаю список учеников...")
     clients = gs_service.get_active_clients()
     if not clients:
-        await message.answer("У тебя пока нет активных клиентов.")
+        await message.answer("У тебя пока нет активных учеников.")
         return
-    text = "👥 **Активные клиенты:**\n\n" + "\n".join([f"• {name}" for name in clients])
+    text = "👥 **Активные ученики:**\n\n" + "\n".join([f"• {name}" for name in clients])
     await message.answer(text, parse_mode="Markdown")
 
 
-@dp.message(F.text == "➕ Добавить клиента")
+@dp.message(F.text == "➕ Добавить ученика")
 async def start_add_client(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     await state.set_state(AddClient.entering_name)
     builder = ReplyKeyboardBuilder()
     builder.button(text="❌ Отмена")
-    await message.answer("Введите имя клиента:", reply_markup=builder.as_markup(resize_keyboard=True))
+    await message.answer("Введите имя ученика:", reply_markup=builder.as_markup(resize_keyboard=True))
 
 
 @dp.message(AddClient.entering_name)
@@ -401,7 +401,7 @@ async def process_client_name(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     await state.update_data(client_name=message.text)
     await state.set_state(AddClient.choosing_type)
-    await message.answer(f"Какого типа клиент '{message.text}'?", reply_markup=builders.client_type_selection())
+    await message.answer(f"Какого типа ученик '{message.text}'?", reply_markup=builders.client_type_selection())
 
 
 @dp.message(AddClient.choosing_type, F.text.in_({"Индив", "Пара", "Группа"}))
@@ -409,7 +409,7 @@ async def process_client_type(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     data = await state.get_data()
     gs_service.add_new_client(data['client_name'], message.text)
-    await message.answer(f"✅ Клиент сохранен!", reply_markup=builders.clients_menu())
+    await message.answer(f"✅ Ученик сохранен!", reply_markup=builders.clients_menu())
     await state.clear()
 
 
@@ -418,7 +418,7 @@ async def start_archive_client(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     clients = gs_service.get_active_clients()
     if not clients:
-        await message.answer("Нет активных клиентов для архивации.")
+        await message.answer("Нет активных учеников для архивации.")
         return
     await state.set_state(ArchiveClientState.choosing_client)
     await message.answer("Кого перевести в архив?", reply_markup=builders.clients_as_buttons(clients))
@@ -429,10 +429,10 @@ async def process_archive_client(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     clients = gs_service.get_active_clients()
     if message.text not in clients:
-        await message.answer("Выберите клиента с помощью кнопки!")
+        await message.answer("Выберите ученика с помощью кнопки!")
         return
     gs_service.archive_client(message.text)
-    await message.answer(f"🗄 Клиент {message.text} переведен в архив.", reply_markup=builders.clients_menu())
+    await message.answer(f"🗄 Ученик {message.text} переведен в архив.", reply_markup=builders.clients_menu())
     await state.clear()
 
 
@@ -441,10 +441,10 @@ async def start_top_up_sub(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     clients = gs_service.get_active_clients()
     if not clients:
-        await message.answer("Нет активных клиентов.")
+        await message.answer("Нет активных учеников.")
         return
     await state.set_state(TopUpSubState.choosing_client)
-    await message.answer("Выберите клиента для пополнения абонемента:",
+    await message.answer("Выберите ученика для пополнения абонемента:",
                          reply_markup=builders.clients_as_buttons(clients))
 
 
@@ -453,7 +453,7 @@ async def process_top_up_client(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
     clients = gs_service.get_active_clients()
     if message.text not in clients:
-        await message.answer("Выберите клиента с помощью кнопки!")
+        await message.answer("Выберите ученика с помощью кнопки!")
         return
     await state.update_data(sub_client=message.text)
     await state.set_state(TopUpSubState.choosing_lessons)
@@ -482,7 +482,7 @@ async def start_record(message: types.Message, state: FSMContext):
 
 
 @dp.message(RecordHours.choosing_date, F.text != "Другая дата", F.text != "Аналитика", F.text != "Сверить часы",
-            F.text != "Открыть таблицу 📝", F.text != "👥 Клиенты", F.text != "➕ Добавить запись",
+            F.text != "Открыть таблицу 📝", F.text != "👥 Ученики", F.text != "➕ Добавить запись",
             F.text != "📅 Расписание", F.text != "💰 Финансы", F.text != "📅 Расписание занятий")
 async def process_date(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS: return
