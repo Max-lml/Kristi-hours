@@ -2,3 +2,4 @@
 .env
 service_account.json
 __pycache__/
+project_summary.txt

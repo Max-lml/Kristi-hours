@@ -1,14 +1,25 @@
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from datetime import datetime, timedelta
+
 
 def main_menu():
     builder = ReplyKeyboardBuilder()
     builder.button(text="Записать часы")
     builder.button(text="Сверить часы")
-    builder.button(text="Аналитика") # <--- ДОБАВЛЯЕМ ТУТ
-    builder.adjust(2, 1) # Делаем 2 кнопки в ряд, а Аналитику под ними
+    builder.button(text="Аналитика")
+    builder.button(text="Открыть таблицу 📝")
+    builder.adjust(2, 2)  # Теперь кнопки будут красиво лежать 2х2
     return builder.as_markup(resize_keyboard=True)
 
+
+# Создаем специальную инлайн-кнопку со ссылкой
+def open_sheet_inline():
+    builder = InlineKeyboardBuilder()
+    # Сюда вставляешь полную ссылку на твою Google Таблицу
+    sheet_url = "https://docs.google.com/spreadsheets/d/1lJtqnCpCUHmURX4JmWa5vJYy-kXqz67hUDR1Z_wK5N0/edit?gid=1867670094#gid=1867670094"
+
+    builder.button(text="Перейти к Google Таблице 🚀", url=sheet_url)
+    return builder.as_markup()
 def date_selection():
     builder = ReplyKeyboardBuilder()
     today = datetime.now()

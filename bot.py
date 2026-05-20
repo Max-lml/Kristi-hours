@@ -16,6 +16,7 @@ from services.google_sheets import gs_service
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 
+
 # 1. ОПРЕДЕЛЯЕМ СОСТОЯНИЯ
 class RecordHours(StatesGroup):
     choosing_date = State()
@@ -57,7 +58,8 @@ async def manual_date_entry(message: types.Message, state: FSMContext):
 
 
 # КЕЙС 2: Пользователь нажал на кнопку с готовой датой или ввел текст вместо кнопки
-@dp.message(RecordHours.choosing_date, F.text != "Другая дата")
+# Исключаем команды меню, чтобы они не перехватывались этим хэндлером
+@dp.message(RecordHours.choosing_date, F.text != "Другая дата", F.text != "Аналитика", F.text != "Сверить часы")
 async def process_date(message: types.Message, state: FSMContext):
     try:
         # Валидация: если введет "ор", упадем в except
@@ -106,7 +108,10 @@ async def process_hours(message: types.Message, state: FSMContext):
 # --- ЛОГИКА СВЕРКИ И АНАЛИТИКИ ---
 
 @dp.message(F.text == "Сверить часы")
-async def check_hours_start(message: types.Message):
+async def check_hours_start(message: types.Message, state: FSMContext = None):
+    # Если пользователь был в процессе записи часов, сбрасываем его
+    if state:
+        await state.clear()
     await message.answer(
         "За какой месяц хочешь посмотреть отчет?",
         reply_markup=builders.month_selection()
@@ -124,7 +129,11 @@ async def process_report(message: types.Message):
 
 
 @dp.message(F.text == "Аналитика")
-async def send_analytics(message: types.Message):
+async def send_analytics(message: types.Message, state: FSMContext = None):
+    # Если Кристина нажала "Аналитика" во время выбора даты, прерываем сценарий FSM
+    if state:
+        await state.clear()
+
     await message.answer("📊 Собираю данные и рисую график...")
     data = gs_service.get_all_data_for_analytics()
 
@@ -149,8 +158,8 @@ async def send_analytics(message: types.Message):
     await message.answer_photo(photo, caption="📈 Твоя нагрузка по месяцам")
     plt.close()
 
+
 async def send_reminder():
-    # Создаем список ID (важно: без кавычек, так как это числа)
     user_ids = [364213802, 154491963]
 
     for user_id in user_ids:
@@ -161,16 +170,23 @@ async def send_reminder():
             )
             logging.info(f"Уведомление успешно отправлено пользователю {user_id}")
         except Exception as e:
-            # Если возникла ошибка (например, бот заблокирован), просто логируем её
             logging.error(f"Не удалось отправить уведомление пользователю {user_id}: {e}")
 
-
+@dp.message(F.text == "Открыть таблицу 📝")
+async def cmd_open_table(message: types.Message, state: FSMContext = None):
+    if state:
+        await state.clear()
+    await message.answer(
+        "Вот прямая ссылка на твою Google Таблицу со всеми записями. "
+        "Ты можешь зайти и проверить/поправить данные в любой момент:",
+        reply_markup=builders.open_sheet_inline()
+    )
 # --- ЗАПУСК ---
 
 async def main():
     # Настраиваем планировщик
     scheduler = AsyncIOScheduler(timezone=timezone("Europe/Moscow"))
-    # Добавляем задачу: каждый день (cron) в 21:00
+    # Добавляем задачу: каждый день (cron) в 19:00 по МСК (указано в твоем коде)
     scheduler.add_job(send_reminder, "cron", hour=19, minute=00)
     scheduler.start()
 
