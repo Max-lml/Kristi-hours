@@ -24,7 +24,6 @@ class RecordHours(StatesGroup):
     entering_hours = State()
 
 
-# Новые состояния для добавления клиента
 class AddClient(StatesGroup):
     entering_name = State()
     choosing_type = State()
@@ -35,18 +34,30 @@ bot = Bot(token=config.BOT_TOKEN)
 dp = Dispatcher()
 
 
-# --- БАЗОВЫЕ КОМАНДЫ ---
+# --- БАЗОВЫЕ КОМАНДЫ И СБРОСЫ ---
 
 @dp.message(Command("start"))
 @dp.message(F.text == "⬅️ Главное меню")
-@dp.message(F.text == "... Назад")
 async def cmd_start(message: types.Message, state: FSMContext = None):
     if state:
         await state.clear()
-    await message.answer(
-        "Главное меню загружено.",
-        reply_markup=builders.main_menu()
-    )
+    await message.answer("Главное меню:", reply_markup=builders.main_menu())
+
+
+# Универсальный перехватчик "Отмены" для любых сценариев
+@dp.message(F.text == "❌ Отмена")
+async def cancel_any_action(message: types.Message, state: FSMContext = None):
+    if state:
+        current_state = await state.get_state()
+        await state.clear()
+
+        # Если отменили добавление клиента, возвращаем в меню клиентов
+        if current_state and "AddClient" in current_state:
+            await message.answer("Добавление клиента отменено.", reply_markup=builders.clients_menu())
+            return
+
+    # Во всех остальных случаях возвращаем в главное меню
+    await message.answer("Действие отменено.", reply_markup=builders.main_menu())
 
 
 # --- РАЗДЕЛ: КЛИЕНТЫ ---
@@ -74,17 +85,15 @@ async def show_clients_list(message: types.Message):
 @dp.message(F.text == "➕ Добавить клиента")
 async def start_add_client(message: types.Message, state: FSMContext):
     await state.set_state(AddClient.entering_name)
+    # Даем клавиатуру с отменой, чтобы пользователь мог передумать сразу
+    builder = types.ReplyKeyboardBuilder()
+    builder.button(text="❌ Отмена")
     await message.answer("Введите имя клиента (или имена пары/название группы):",
-                         reply_markup=types.ReplyKeyboardRemove())
+                         reply_markup=builder.as_markup(resize_keyboard=True))
 
 
 @dp.message(AddClient.entering_name)
 async def process_client_name(message: types.Message, state: FSMContext):
-    if message.text == "❌ Отмена":
-        await state.clear()
-        await message.answer("Добавление отменено.", reply_markup=builders.clients_menu())
-        return
-
     await state.update_data(client_name=message.text)
     await state.set_state(AddClient.choosing_type)
     await message.answer(f"Какого типа клиент '{message.text}'?", reply_markup=builders.client_type_selection())
@@ -96,20 +105,13 @@ async def process_client_type(message: types.Message, state: FSMContext):
     client_name = data['client_name']
     client_type = message.text
 
-    # Записываем в Google Таблицу на лист Clients
     gs_service.add_new_client(client_name, client_type)
 
     await message.answer(f"✅ Клиент сохранен!\n👤 {client_name} ({client_type})", reply_markup=builders.clients_menu())
     await state.clear()
 
 
-@dp.message(AddClient.choosing_type, F.text == "❌ Отмена")
-async def cancel_client_type(message: types.Message, state: FSMContext):
-    await state.clear()
-    await message.answer("Добавление отменено.", reply_markup=builders.clients_menu())
-
-
-# --- ЛОГИКА ЗАПИСИ ЧАСОВ (СТАРАЯ) ---
+# --- ЛОГИКА ЗАПИСИ ЧАСОВ ---
 
 @dp.message(F.text == "Записать часы")
 async def start_record(message: types.Message, state: FSMContext):
@@ -124,8 +126,10 @@ async def process_date(message: types.Message, state: FSMContext):
         datetime.strptime(message.text, "%d.%m.%Y")
         await state.update_data(chosen_date=message.text)
         await state.set_state(RecordHours.entering_hours)
+        builder = types.ReplyKeyboardBuilder()
+        builder.button(text="❌ Отмена")
         await message.answer(f"Выбрана дата: {message.text}\nСколько часов ты отработала?",
-                             reply_markup=types.ReplyKeyboardRemove())
+                             reply_markup=builder.as_markup(resize_keyboard=True))
     except ValueError:
         await message.answer("❌ Напиши дату цифрами (ДД.ММ.ГГГГ) или выбери на кнопках)")
 
@@ -133,8 +137,10 @@ async def process_date(message: types.Message, state: FSMContext):
 @dp.message(RecordHours.choosing_date, F.text == "Другая дата")
 async def manual_date_entry(message: types.Message, state: FSMContext):
     await state.set_state(RecordHours.manual_date)
+    builder = types.ReplyKeyboardBuilder()
+    builder.button(text="❌ Отмена")
     await message.answer("Введи дату в формате ДД.ММ.ГГГГ\nНапример: 12.04.2026",
-                         reply_markup=types.ReplyKeyboardRemove())
+                         reply_markup=builder.as_markup(resize_keyboard=True))
 
 
 @dp.message(RecordHours.manual_date)
@@ -143,7 +149,10 @@ async def process_manual_date(message: types.Message, state: FSMContext):
         datetime.strptime(message.text, "%d.%m.%Y")
         await state.update_data(chosen_date=message.text)
         await state.set_state(RecordHours.entering_hours)
-        await message.answer(f"Дата {message.text} принята. Сколько часов ты отработала?")
+        builder = types.ReplyKeyboardBuilder()
+        builder.button(text="❌ Отмена")
+        await message.answer(f"Дата {message.text} принята. Сколько часов ты отработала?",
+                             reply_markup=builder.as_markup(resize_keyboard=True))
     except ValueError:
         await message.answer("❌ Ошибка в формате!\nНапиши дату вот так: 16.04.2026")
 
@@ -163,7 +172,7 @@ async def process_hours(message: types.Message, state: FSMContext):
         await message.answer("❌ Нужно ввести число (например: 5 или 1.5)")
 
 
-# --- ЛОГИКА СВЕРКИ И АНАЛИТИКИ (СТАРАЯ) ---
+# --- ЛОГИКА СВЕРКИ И АНАЛИТИКИ ---
 
 @dp.message(F.text == "Сверить часы")
 async def check_hours_start(message: types.Message, state: FSMContext = None):
